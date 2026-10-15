@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mega Project Risk Analyzer</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#060a0f;--panel:#0d151e;--panel2:#122030;--line:#1c2b3c;--grid:rgba(120,160,200,.06);--text:#dce7f1;--mute:#7e93a9;--gold:#e9b949;--up:#2ee59d;--down:#ff5c6c;--blue:#4cc9f0}
+[data-theme="light"]{--bg:#eef2f6;--panel:#fff;--panel2:#f2f6fa;--line:#d3dde8;--grid:rgba(20,60,100,.06);--text:#0b1620;--mute:#566a7e;--gold:#9a6b00;--up:#08955d;--down:#d12b40;--blue:#0a76a3}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-padding-top:60px}
+body{font-family:'Times New Roman',Times,serif;background:var(--bg);color:var(--text);line-height:1.5;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);transition:background .3s,color .3s}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(var(--grid) 1px,transparent 1px) 0 0/44px 44px,linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/44px 44px;animation:drift 24s linear infinite}
+@keyframes drift{to{background-position:0 44px,44px 0}}
+.mono,.kv,.tv,.ti,#stat,.lg span,table.edit input,.f input{font-family:'Times New Roman',Times,serif}
+.tape{overflow:hidden;white-space:nowrap;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20;height:38px;display:flex;align-items:center}
+.track{display:inline-flex;animation:tape 38s linear infinite;will-change:transform}
+@keyframes tape{to{transform:translateX(-50%)}}
+.ti{padding:0 26px;font-size:.8rem;border-right:1px solid var(--line)}.ti em{font-style:normal;color:var(--mute);margin-right:6px}.ti b{margin-left:4px}
+.g{color:var(--up)}.r{color:var(--down)}.y{color:var(--gold)}.mute{color:var(--mute)}
+header.top{position:relative;padding:22px 22px 8px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;overflow:hidden}
+h1{font-size:clamp(1.5rem,3vw,2.2rem);font-weight:700;letter-spacing:-.02em}
+header p{color:var(--mute)}
+.status{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--mute)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--up);box-shadow:0 0 0 0 var(--up);animation:ping 1.8s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 10px transparent}100%{box-shadow:0 0 0 0 transparent}}
+#themeBtn{background:var(--panel);border:1px solid var(--line);color:var(--text);width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:1rem}
+.line{position:absolute;left:0;right:0;bottom:0;height:60px;width:100%;opacity:.5;pointer-events:none}
+.line path{fill:none;stroke:var(--gold);stroke-width:2;stroke-dasharray:1400;stroke-dashoffset:1400;animation:draw 5s ease-in-out infinite alternate;vector-effect:non-scaling-stroke}
+@keyframes draw{to{stroke-dashoffset:0}}
+.app{display:grid;grid-template-columns:360px minmax(0,1fr);gap:18px;padding:18px 22px 40px;max-width:1700px;margin:0 auto}
+.panel,.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.side{position:sticky;top:56px;align-self:start;max-height:calc(100vh - 74px);overflow:auto;padding:6px 14px 14px}
+details{border-bottom:1px solid var(--line);padding:10px 0}details:last-child{border:0}
+summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between}summary::after{content:"+";color:var(--gold)}details[open] summary::after{content:"-"}
+.f{display:grid;grid-template-columns:1fr 112px;gap:8px;align-items:center;margin-top:8px;font-size:.85rem;color:var(--mute)}
+input,select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:.85rem}
+input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.scroll{overflow-x:auto;margin-top:8px}table{border-collapse:collapse;width:100%}
+table.edit th{font-size:.7rem;color:var(--mute);text-align:left;padding:2px 4px;white-space:nowrap}table.edit td{padding:3px}table.edit td:first-child input{min-width:130px}table.edit input{min-width:62px}
+button{cursor:pointer;font:inherit}.add{margin-top:8px;background:transparent;border:1px dashed var(--line);color:var(--gold);border-radius:6px;padding:6px 10px;width:100%}.add:hover{border-color:var(--gold)}
+.x{background:none;border:0;color:var(--mute);font-size:1.1rem}.x:hover{color:var(--down)}
+.main{display:grid;gap:18px}.row2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.hero{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.ring{position:relative;width:132px;height:132px;flex:none}.ring svg{transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:11}.ring .bg{stroke:var(--line)}
+#ringArc{stroke-linecap:round;stroke-dasharray:326.7;stroke-dashoffset:326.7;transition:stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1),stroke .5s}
+.ring.g #ringArc{stroke:var(--up)}.ring.y #ringArc{stroke:var(--gold)}.ring.r #ringArc{stroke:var(--down)}
+#ringTxt{position:absolute;inset:0;display:grid;place-items:center;font-family:'Times New Roman',Times,serif;font-size:1.5rem;font-weight:600}
+#verdict{font-size:1.5rem;font-weight:700}.hero .b{flex:1;min-width:220px}
+#setBase{margin-top:10px;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:7px 12px;border-radius:6px}
+#kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:2px;transition:transform .2s}
+.kpi:hover{transform:translateY(-2px)}.kl{font-size:.74rem;color:var(--mute)}.kv{font-size:1.35rem;font-weight:600}.kd{font-size:.7rem;color:var(--mute);min-height:1em}.kd.g{color:var(--up)}.kd.r{color:var(--down)}
+.kpi.up{animation:fu 1s}.kpi.down{animation:fd 1s}
+@keyframes fu{0%{background:rgba(46,229,157,.28)}100%{background:var(--panel)}}@keyframes fd{0%{background:rgba(255,92,108,.28)}100%{background:var(--panel)}}
+.card h2{font-size:1rem;margin-bottom:10px}.ch{position:relative;height:300px}
+.col{display:flex;flex-direction:column;gap:7px}.tb{display:grid;grid-template-columns:150px 1fr 140px;gap:8px;align-items:center;font-size:.8rem}
+.tl{color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tt{position:relative;height:20px;background:var(--bg);border-radius:4px;overflow:hidden}
+.tt i{position:absolute;top:0;height:100%;width:0;transition:width .8s cubic-bezier(.2,.8,.2,1)}.tt .neg{right:50%;background:var(--down)}.tt .pos{left:50%;background:var(--up)}.tt u{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--mute)}
+.tv{text-align:right;font-size:.75rem}
+.lg{display:flex;flex-wrap:wrap;gap:6px 14px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.82rem;animation:slide .5s ease backwards}.lg span{font-size:.75rem}
+@keyframes slide{from{opacity:0;transform:translateX(-16px)}}
+.main>*{animation:rise .6s ease backwards}.main>*:nth-child(2){animation-delay:.08s}.main>*:nth-child(3){animation-delay:.16s}.main>*:nth-child(4){animation-delay:.24s}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}}
+.export{margin-top:6px;background:var(--gold);color:#0b0f14;border:0;border-radius:6px;padding:8px 14px;font-weight:600}
+@media(max-width:1100px){.app{grid-template-columns:1fr}.side{position:static;max-height:none}#kpis{grid-template-columns:repeat(2,1fr)}.row2{grid-template-columns:1fr}.tb{grid-template-columns:110px 1fr 110px}}
+@media(prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
+
+/* ===== added: intro, landing, 3D features, steps ===== */
+body.v-intro{overflow:hidden}
+body.v-intro .app,body.v-intro #bar,body.v-intro #landing,body.v-intro #botNext,body.v-landing .app,body.v-landing #bar,body.v-landing #botNext{display:none}
+#landing{display:none;position:relative;z-index:1;max-width:1300px;margin:0 auto;padding:30px 22px 70px}
+body.v-landing #landing{display:block;animation:rise .9s ease backwards}
+#bgrain{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.3;display:none}
+body.v-landing #bgrain{display:block}
+#intro{position:fixed;inset:0;z-index:100;background:#04080c;color:#dce7f1;transition:transform 1.1s cubic-bezier(.7,0,.2,1),opacity 1.1s}
+#intro.done{transform:translateY(-100%);opacity:0;pointer-events:none}
+#fx{position:absolute;inset:0;width:100%;height:100%}
+.ib{position:absolute;top:9%;left:0;right:0;text-align:center}
+.lo{font-weight:700;font-size:clamp(1.4rem,4vw,2.6rem);letter-spacing:.14em}.lo span{color:#e9b949}
+#pl{font-family:'Times New Roman',Times,serif;font-size:clamp(1rem,2.2vw,1.4rem);margin-top:10px}
+.lb{position:absolute;bottom:7%;left:50%;transform:translateX(-50%);width:min(560px,86%);text-align:center;font-size:.82rem;color:#7e93a9}
+.lbar{height:6px;background:#1c2b3c;border-radius:9px;overflow:hidden;margin-bottom:10px}.lbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#e9b949,#2ee59d)}
+#skip{margin-top:10px;background:none;border:1px solid #1c2b3c;color:#7e93a9;border-radius:6px;padding:4px 12px}
+.lh{text-align:center;padding:26px 0 6px}.lh h2{font-size:clamp(2rem,5vw,3.6rem);line-height:1.1;letter-spacing:-.03em}
+.lh h2 span{background:linear-gradient(90deg,var(--gold),var(--up));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lh p{color:var(--mute);max-width:640px;margin:14px auto 0}.hint{color:var(--gold);font-size:.8rem;margin-top:18px}
+.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:18px;margin-top:18px}
+.fc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 18px 18px;text-align:center}
+.fc small{color:var(--mute);font-family:'Times New Roman',Times,serif;font-size:.72rem}.fc p{color:var(--mute);font-size:.9rem;margin-top:4px}
+.sc{height:120px;display:grid;place-items:center;perspective:800px;cursor:grab;touch-action:none;user-select:none}.sc:active{cursor:grabbing}
+.obj{display:grid;transform-style:preserve-3d;will-change:transform}
+.obj b{grid-area:1/1;font-size:clamp(1.4rem,2.5vw,2rem);font-weight:700;letter-spacing:.03em;white-space:nowrap;text-align:center}
+.cta{display:block;margin:36px auto 0;background:var(--gold);color:#0b0f14;border:0;border-radius:10px;padding:16px 34px;font-size:1.1rem;font-weight:700;animation:glow 2s infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(233,185,73,.5)}50%{box-shadow:0 0 0 14px rgba(233,185,73,0)}}
+#bar{display:none;max-width:1700px;margin:0 auto;padding:10px 22px 0;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+body.v-input #bar,body.v-results #bar{display:flex}
+.steps{display:flex;gap:8px;font-size:.78rem;flex-wrap:wrap}.steps span{padding:4px 12px;border:1px solid var(--line);border-radius:99px;color:var(--mute)}
+body.v-input .s2,body.v-results .s3{border-color:var(--gold)!important;color:var(--gold)!important}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 16px;border-radius:8px;font-weight:600}.btn.pri{background:var(--gold);color:#0b0f14;border-color:var(--gold)}
+.acts{display:flex;gap:8px}
+body.v-input .only-res,body.v-results .only-input{display:none}
+body.v-input .app{grid-template-columns:1fr}body.v-input .main{display:none}
+body.v-input .side{position:static;max-height:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:0 30px;align-content:start}
+#botNext{display:none;max-width:1700px;margin:0 auto;padding:0 22px 40px;text-align:right}body.v-input #botNext{display:block}
+#calc{position:fixed;inset:0;z-index:90;background:var(--bg);display:none;place-items:center;text-align:center}#calc.on{display:grid}
+.cb{display:flex;gap:6px;height:60px;align-items:flex-end;justify-content:center;margin-bottom:14px}
+.cb i{width:10px;background:var(--up);animation:bounce 1s ease-in-out infinite}.cb i:nth-child(even){background:var(--down);animation-delay:.2s}.cb i:nth-child(3n){animation-delay:.4s}
+@keyframes bounce{0%,100%{height:12px}50%{height:58px}}
+@media print{.tape,#bar,#intro,#landing,#calc,#bgrain,.side,.export,.status,#botNext{display:none!important}.app{display:block}}
+
+/* ===== v2: Times New Roman, market background, 3D cards ===== */
+html{font-size:17px}input,select,button{font-family:inherit}
+#bgrain{display:block!important;z-index:-1;opacity:.55}
+.panel,.card,.kpi{background:color-mix(in srgb,var(--panel) 82%,transparent);backdrop-filter:blur(3px)}
+.fc{background:none;border:0;padding:0;backdrop-filter:none}
+.sc{height:270px;display:block;perspective:1100px;cursor:grab;touch-action:pan-y;user-select:none}.sc:active{cursor:grabbing}
+.obj{position:relative;width:100%;height:100%;display:block;transform-style:preserve-3d}
+.edge,.face{position:absolute;inset:0;border-radius:16px}
+.edge{background:#1a2a3a;border:1px solid #e9b949}
+.face{backface-visibility:hidden;-webkit-backface-visibility:hidden;padding:22px 24px;text-align:left;border:1.5px solid #e9b949;background:linear-gradient(145deg,#142434,#0a131c);color:#dce7f1;box-shadow:0 0 32px rgba(233,185,73,.2);overflow:hidden}
+.front{transform:translateZ(8px)}.back{transform:rotateY(180deg) translateZ(8px)}
+.face small{color:#e9b949;letter-spacing:.14em;font-size:.8rem}
+.face h3{font-size:1.85rem;color:#e9b949;margin:8px 0 6px;letter-spacing:.02em}
+.rule{display:block;height:2px;width:70px;background:linear-gradient(90deg,#e9b949,#2ee59d);margin-bottom:12px}
+.face p{color:#b9c8d8;font-size:1.05rem;margin:0}
+.tip{position:absolute;left:24px;bottom:16px;font-size:.8rem;color:#7e93a9}
+.spark{position:absolute;right:16px;bottom:12px;width:120px;height:40px}
+.back ul{list-style:none;margin-top:14px}.back li{padding:8px 0;border-bottom:1px solid #1c2b3c;color:#dce7f1;font-size:1.05rem}.back li::before{content:"\25B2  ";color:#2ee59d;font-size:.8rem}
+
+/* ===== v3: clean, plain data-entry page ===== */
+#inHead{display:none;max-width:1700px;margin:0 auto;padding:22px 22px 0}
+body.v-input #inHead{display:block}
+#inHead h2{font-size:2rem;font-weight:700;letter-spacing:-.01em}
+#inHead p{color:var(--mute);margin-top:4px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:18px}
+.chip{background:color-mix(in srgb,var(--panel) 90%,transparent);border:1px solid var(--line);border-radius:12px;padding:14px 18px}
+.chip span{display:block;font-size:.82rem;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+.chip b{display:block;font-size:1.7rem;font-weight:600;margin-top:2px;color:var(--text)}
+body.v-input .side{background:none;border:0;padding:0;gap:18px;counter-reset:s}
+body.v-input .side details{background:color-mix(in srgb,var(--panel) 90%,transparent);border:1px solid var(--line);border-radius:12px;padding:20px 22px;align-self:start}
+body.v-input .side summary{justify-content:flex-start;align-items:center;font-size:1.2rem;font-weight:700;color:var(--text)}
+body.v-input .side summary::before{counter-increment:s;content:counter(s);display:inline-grid;place-items:center;width:28px;height:28px;border:1px solid var(--line);border-radius:50%;font-size:.85rem;font-weight:600;margin-right:12px;color:var(--mute)}
+body.v-input .side summary::after{margin-left:auto;color:var(--mute)}
+.hint2{color:var(--mute);font-size:.92rem;margin:6px 0 10px 40px}
+body.v-input .side .f{grid-template-columns:1fr 140px;margin-top:0;padding:10px 0;border-top:1px solid var(--line);font-size:1rem;color:var(--text)}
+body.v-input .side input,body.v-input .side select{background:color-mix(in srgb,var(--bg) 75%,transparent);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:1rem;color:var(--text)}
+body.v-input .side input:hover,body.v-input .side select:hover{border-color:var(--mute)}
+body.v-input .side input:focus,body.v-input .side select:focus{outline:none;border-color:var(--gold)}
+body.v-input table.edit th{font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);padding:6px 4px;font-weight:600}
+body.v-input table.edit td{padding:4px}
+body.v-input .add{border:1px solid var(--line);border-radius:8px;color:var(--text);padding:9px;margin-top:10px}
+body.v-input .add:hover{border-color:var(--mute);background:var(--panel2)}
+body.v-input .btn.pri{animation:none}
+
+/* ===== v4: colourful data page, gradient text, liquid buttons ===== */
+@keyframes flow{to{background-position:300% 0}}
+@keyframes wob{to{transform:rotate(360deg)}}
+body.v-input #inHead h2{font-size:2.4rem;background:linear-gradient(90deg,#e9b949,#2ee59d,#4cc9f0,#e9b949);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:flow 8s linear infinite}
+body.v-input #inHead p{font-size:1.05rem}
+body.v-input .chip{position:relative;overflow:hidden;transition:transform .25s,box-shadow .25s;border-color:color-mix(in srgb,var(--c) 45%,var(--line))}
+body.v-input .chip::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--c)}
+body.v-input .chip:nth-child(1){--c:#e9b949}body.v-input .chip:nth-child(2){--c:#ff5c6c}body.v-input .chip:nth-child(3){--c:#4cc9f0}body.v-input .chip:nth-child(4){--c:#2ee59d}
+body.v-input .chip:hover{transform:translateY(-3px);box-shadow:0 10px 28px color-mix(in srgb,var(--c) 28%,transparent)}
+body.v-input .chip b{color:var(--c);font-size:1.9rem}
+body.v-input .side{grid-auto-flow:dense}
+body.v-input .side details:nth-child(1){--a1:#4cc9f0;--a2:#6a8bff}body.v-input .side details:nth-child(2){--a1:#2ee59d;--a2:#4cc9f0}
+body.v-input .side details:nth-child(3){--a1:#e9b949;--a2:#ff8a3d}body.v-input .side details:nth-child(4){--a1:#ff5c6c;--a2:#ff8a3d}
+body.v-input .side details:nth-child(5){--a1:#b388ff;--a2:#4cc9f0}body.v-input .side details:nth-child(6){--a1:#ff6ad5;--a2:#b388ff}
+body.v-input .side details:nth-child(7){--a1:#2ee59d;--a2:#e9b949}
+body.v-input .side details{border:1.5px solid transparent;background:linear-gradient(var(--panel),var(--panel)) padding-box,linear-gradient(135deg,var(--a1),var(--a2)) border-box;transition:transform .3s,box-shadow .3s}
+body.v-input .side details:hover{transform:translateY(-4px);box-shadow:0 14px 40px color-mix(in srgb,var(--a1) 28%,transparent)}
+@media(min-width:1200px){body.v-input .side details:nth-child(3),body.v-input .side details:nth-child(4){grid-column:span 2}}
+body.v-input .side summary{font-size:1.35rem;background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent;width:100%}
+body.v-input .side summary::before{background:linear-gradient(135deg,var(--a1),var(--a2));border:0;color:#06121a;font-weight:700;box-shadow:0 0 14px color-mix(in srgb,var(--a1) 55%,transparent);-webkit-text-fill-color:#06121a}
+body.v-input .side summary::after{-webkit-text-fill-color:var(--a1);color:var(--a1);font-size:1.3rem}
+body.v-input .side .f{border-top:1px solid color-mix(in srgb,var(--a1) 22%,var(--line))}
+body.v-input .side .f span{color:var(--text)}
+body.v-input .side input,body.v-input .side select{color:var(--a1);font-weight:600;border-color:color-mix(in srgb,var(--a1) 30%,var(--line));transition:border-color .2s,box-shadow .2s}
+body.v-input .side input:hover,body.v-input .side select:hover{border-color:var(--a1)}
+body.v-input .side input:focus,body.v-input .side select:focus{border-color:var(--a1);box-shadow:0 0 0 3px color-mix(in srgb,var(--a1) 30%,transparent),0 0 18px color-mix(in srgb,var(--a1) 35%,transparent)}
+body.v-input table.edit th{color:var(--a1)}
+body.v-input table.edit td:first-child input{min-width:190px;color:var(--text)}
+body.v-input table.edit input{min-width:70px}
+body.v-input .x{color:var(--a1);font-size:1.3rem}body.v-input .x:hover{color:#ff5c6c;transform:rotate(90deg)}
+/* liquid buttons */
+.liq,body.v-input .btn.pri,#bar .btn.pri,#botNext .btn.pri,.cta{position:relative;overflow:hidden;isolation:isolate;border:0;color:#06121a;font-weight:700;border-radius:14px;background:linear-gradient(120deg,#e9b949,#ff8a3d,#2ee59d,#4cc9f0,#e9b949);background-size:300% 100%;animation:flow 6s linear infinite;box-shadow:0 8px 24px rgba(233,185,73,.28);transition:transform .25s,box-shadow .25s}
+.liq::before,body.v-input .btn.pri::before,#bar .btn.pri::before,#botNext .btn.pri::before,.cta::before,body.v-input .add::before{content:"";position:absolute;left:-15%;width:130%;height:260%;top:105%;background:rgba(255,255,255,.38);border-radius:42%;transition:top .7s cubic-bezier(.3,.8,.3,1);animation:wob 4s linear infinite;z-index:-1}
+body.v-input .btn.pri:hover::before,#bar .btn.pri:hover::before,#botNext .btn.pri:hover::before,.cta:hover::before,body.v-input .add:hover::before{top:-70%}
+body.v-input .btn.pri:hover,#bar .btn.pri:hover,#botNext .btn.pri:hover,.cta:hover{transform:translateY(-3px) scale(1.03);box-shadow:0 14px 34px rgba(46,229,157,.35)}
+body.v-input .btn.pri:active,.cta:active{transform:scale(.97)}
+body.v-input .btn.pri,#bar .btn.pri,#botNext .btn.pri{padding:11px 22px}
+body.v-input .btn:not(.pri){border-radius:14px;padding:11px 20px;transition:transform .25s,border-color .25s}body.v-input .btn:not(.pri):hover{transform:translateY(-2px);border-color:var(--gold)}
+body.v-input .add{position:relative;overflow:hidden;isolation:isolate;border:1.5px dashed var(--a1);color:var(--a1);border-radius:14px;font-weight:600;background:transparent;transition:color .3s,border-style .3s}
+body.v-input .add::before{background:linear-gradient(90deg,var(--a1),var(--a2));opacity:.9}
+body.v-input .add:hover{color:#06121a;border-style:solid;background:transparent}
+
+/* ===== v5: results page gets the same colour, gradient text and liquid buttons ===== */
+.side details:nth-child(1){--a1:#4cc9f0;--a2:#6a8bff}.side details:nth-child(2){--a1:#2ee59d;--a2:#4cc9f0}
+.side details:nth-child(3){--a1:#e9b949;--a2:#ff8a3d}.side details:nth-child(4){--a1:#ff5c6c;--a2:#ff8a3d}
+.side details:nth-child(5){--a1:#b388ff;--a2:#4cc9f0}.side details:nth-child(6){--a1:#ff6ad5;--a2:#b388ff}
+.side details:nth-child(7){--a1:#2ee59d;--a2:#e9b949}
+body.v-results .hint2{margin:4px 0 8px;font-size:.85rem}
+body.v-results .side details{border:1.5px solid transparent;background:linear-gradient(var(--panel),var(--panel)) padding-box,linear-gradient(135deg,var(--a1),var(--a2)) border-box;border-radius:12px;padding:12px 14px;margin-bottom:12px;transition:box-shadow .3s}
+body.v-results .side details:last-child{border:1.5px solid transparent}
+body.v-results .side details:hover{box-shadow:0 8px 26px color-mix(in srgb,var(--a1) 26%,transparent)}
+body.v-results .side summary{font-size:1.15rem;font-weight:700;background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
+body.v-results .side summary::after{-webkit-text-fill-color:var(--a1);color:var(--a1);font-size:1.2rem}
+body.v-results .side input,body.v-results .side select{color:var(--a1);font-weight:600;border-color:color-mix(in srgb,var(--a1) 30%,var(--line));transition:border-color .2s,box-shadow .2s}
+body.v-results .side input:focus,body.v-results .side select:focus{outline:none;border-color:var(--a1);box-shadow:0 0 0 3px color-mix(in srgb,var(--a1) 30%,transparent),0 0 16px color-mix(in srgb,var(--a1) 35%,transparent)}
+body.v-results table.edit th{color:var(--a1)}
+body.v-results table.edit td:first-child input{color:var(--text)}
+body.v-results .x{color:var(--a1);font-size:1.25rem}body.v-results .x:hover{color:#ff5c6c;transform:rotate(90deg)}
+body.v-results .add{position:relative;overflow:hidden;isolation:isolate;border:1.5px dashed var(--a1);color:var(--a1);border-radius:14px;font-weight:600;transition:color .3s}
+body.v-results .add::before{content:"";position:absolute;left:-15%;width:130%;height:260%;top:105%;background:linear-gradient(90deg,var(--a1),var(--a2));border-radius:42%;transition:top .7s cubic-bezier(.3,.8,.3,1);animation:wob 4s linear infinite;z-index:-1}
+body.v-results .add:hover{color:#06121a;border-style:solid}body.v-results .add:hover::before{top:-70%}
+/* KPI cards */
+body.v-results .kpi{position:relative;overflow:hidden;transition:transform .25s,box-shadow .25s}
+body.v-results .kpi::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,var(--c),var(--c2))}
+body.v-results .kpi:nth-child(4n+1){--c:#e9b949;--c2:#ff8a3d}body.v-results .kpi:nth-child(4n+2){--c:#2ee59d;--c2:#4cc9f0}
+body.v-results .kpi:nth-child(4n+3){--c:#4cc9f0;--c2:#6a8bff}body.v-results .kpi:nth-child(4n+4){--c:#ff6ad5;--c2:#b388ff}
+body.v-results .kpi:hover{transform:translateY(-4px);box-shadow:0 12px 30px color-mix(in srgb,var(--c) 28%,transparent)}
+body.v-results .kv{width:max-content;font-size:1.55rem;background:linear-gradient(90deg,var(--c),var(--c2));-webkit-background-clip:text;background-clip:text;color:transparent}
+/* card headings */
+body.v-results .card{position:relative}
+body.v-results .card::before{content:"";position:absolute;left:16px;right:16px;top:0;height:2px;background:linear-gradient(90deg,#e9b949,#2ee59d,#4cc9f0)}
+body.v-results .card h2{font-size:1.2rem;width:max-content;max-width:100%;background:linear-gradient(90deg,#e9b949,#2ee59d,#4cc9f0);-webkit-background-clip:text;background-clip:text;color:transparent}
+body.v-results #verdict{font-size:1.8rem}
+/* liquid filled buttons */
+body.v-results #setBase,body.v-results .export,body.v-results #bar .btn{position:relative;overflow:hidden;isolation:isolate;border:0;color:#06121a;font-weight:700;border-radius:14px;padding:11px 22px;background:linear-gradient(120deg,#e9b949,#ff8a3d,#2ee59d,#4cc9f0,#e9b949);background-size:300% 100%;animation:flow 6s linear infinite;box-shadow:0 8px 24px rgba(233,185,73,.28);transition:transform .25s,box-shadow .25s}
+body.v-results #setBase::before,body.v-results .export::before,body.v-results #bar .btn::before{content:"";position:absolute;left:-15%;width:130%;height:260%;top:105%;background:rgba(255,255,255,.38);border-radius:42%;transition:top .7s cubic-bezier(.3,.8,.3,1);animation:wob 4s linear infinite;z-index:-1}
+body.v-results #setBase:hover::before,body.v-results .export:hover::before,body.v-results #bar .btn:hover::before{top:-70%}
+body.v-results #setBase:hover,body.v-results .export:hover,body.v-results #bar .btn:hover{transform:translateY(-3px) scale(1.03);box-shadow:0 14px 34px rgba(46,229,157,.35)}
+body.v-results #setBase:active,body.v-results .export:active,body.v-results #bar .btn:active{transform:scale(.97)}
+body.v-results .export{margin-top:0}
+</style>
+</head>
+<body class="v-intro">
+
+<canvas id="bgrain" aria-hidden="true"></canvas>
+<div id="intro"><canvas id="fx" aria-hidden="true"></canvas>
+  <div class="ib"><div class="lo">MEGA PROJECT <span>RISK ANALYZER</span></div><div id="pl" class="g">LIVE P/L +0.0%</div></div>
+  <div class="lb"><div class="lbar"><i id="lbf"></i></div><div id="lt">Connecting to market feed...</div><button id="skip">Skip intro</button></div></div>
+<div id="calc"><div><div class="cb"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div id="calcT" class="mono">Running scenarios...</div></div></div>
+<div class="tape" aria-label="Live metrics"><div class="track" id="track"></div></div>
+<header class="top">
+  <div><h1>Mega Project Risk Analyzer</h1><p>Change any price, cost or risk. Every result reprices at once.</p></div>
+  <div class="status"><span class="dot"></span><span id="stat">LIVE</span><button id="themeBtn" onclick="toggleTheme()" aria-label="Toggle theme">☾</button></div>
+  <svg class="line" viewBox="0 0 600 60" preserveAspectRatio="none" aria-hidden="true"><path id="spark" d=""/></svg>
+</header>
+
+<section id="landing">
+  <div class="lh"><h2>Know your project's <span>risk</span> before you spend a dollar.</h2>
+  <p>Monte Carlo risk analysis for mega projects: capex, revenue, delays and risk events priced into one live decision.</p>
+  <div class="hint">Grab any card below and spin it a full 360 degrees: front and back</div></div>
+  <div class="fg" id="fg"></div>
+  <button class="cta" onclick="go('input')">Start Analysis &rarr;</button>
+</section>
+<div id="bar"><div class="steps"><span>1 Features</span><span class="s2">2 Your data</span><span class="s3">3 Results</span></div>
+  <div class="acts"><button class="btn only-input" onclick="go('landing')">&larr; Back</button><button class="btn pri only-input" onclick="go('results')">Next: Results &rarr;</button>
+  <button class="btn only-res" onclick="go('input')">&larr; Edit data</button><button class="btn only-res" onclick="window.print()">Print report</button></div></div>
+<div id="inHead"><h2>Your project data</h2><p>Fill in the numbers below. Everything is already set to a sample project, so change only what you need.</p>
+  <div class="chips"><div class="chip"><span>Total capex</span><b id="sCap">-</b></div><div class="chip"><span>Expected risk cost</span><b id="sRisk">-</b></div><div class="chip"><span>Project life</span><b id="sLife">-</b></div><div class="chip"><span>Peak annual revenue</span><b id="sRev">-</b></div></div></div>
+<div class="app">
+  <aside class="panel side" id="side" aria-label="Inputs"></aside>
+  <main class="main">
+    <section class="card hero"><div class="ring" id="ring"><svg width="132" height="132" viewBox="0 0 132 132"><circle class="bg" cx="66" cy="66" r="52"/><circle id="ringArc" cx="66" cy="66" r="52"/></svg><div id="ringTxt">0%</div></div>
+      <div class="b"><div id="verdict">...</div><p class="mute" id="vsub"></p><button id="setBase">Set current result as baseline</button></div></section>
+    <section id="kpis"></section>
+    <section class="card"><h2>Price to profit: where the value comes from</h2><div class="ch"><canvas id="wfChart"></canvas></div></section>
+    <section class="row2"><div class="card"><div class="ch"><canvas id="histChart"></canvas></div></div><div class="card"><div class="ch"><canvas id="fanChart"></canvas></div></div></section>
+    <section class="row2"><div class="card"><div class="ch"><canvas id="cfChart"></canvas></div></div>
+      <div class="card"><h2>Change log: what your last edits did</h2><div id="log"></div></div></section>
+    <section class="row2"><div class="card"><h2>What drives NPV</h2><div class="col" id="drv"></div></div><div class="card"><h2>Risk register: expected NPV impact</h2><div class="col" id="imp"></div></div></section>
+    <section class="card"><button class="export" onclick="exportCSV()">Download CSV report</button> <span class="mute" id="exportMsg"></span></section>
+  </main>
+</div>
+
+<div id="botNext"><button class="btn pri" onclick="go('results')">Next: Results &rarr;</button></div>
+<script>
+function draw(dist, sd) {
+  if (dist === 'tri') return (Math.random() + Math.random() - 1) * sd * Math.sqrt(6); // symmetric triangular, std = sd
+  let u = 0, v = 0;
+  while (!u) u = Math.random();
+  while (!v) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * sd;
+}
+function corr(x, y) {
+  const n = x.length; let mx = 0, my = 0;
+  for (let i = 0; i < n; i++) { mx += x[i]; my += y[i]; }
+  mx /= n; my /= n;
+  let sxy = 0, sxx = 0, syy = 0;
+  for (let i = 0; i < n; i++) { const a = x[i] - mx, b = y[i] - my; sxy += a * b; sxx += a * a; syy += b * b; }
+  return sxx && syy ? sxy / Math.sqrt(sxx * syy) : 0;
+}
+
+// ---------- statistics (s = sorted array) ----------
+function stats(s) {
+  const n = s.length;
+  let sum = 0; for (const v of s) sum += v;
+  const mean = sum / n;
+  let q = 0; for (const v of s) q += (v - mean) * (v - mean);
+  return { mean, std: Math.sqrt(q / (n - 1)), median: n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2, min: s[0], max: s[n - 1] };
+}
+const pct = (s, q) => s[Math.min(s.length - 1, Math.floor(q * s.length))];
+function histogram(s, bins) {
+  const min = s[0], w = (s[s.length - 1] - min) / bins || 1, h = Array(bins).fill(0);
+  for (const v of s) h[Math.min(bins - 1, Math.floor((v - min) / w))]++;
+  return { h, centers: h.map((_, i) => min + (i + 0.5) * w) };
+}
+// ================= LIVE MODEL: every input reprices everything =================
+const $ = id => document.getElementById(id);
+const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const num = (n, d = 0) => n.toLocaleString('en-US', { maximumFractionDigits: d });
+let PRE = '$', charts = {}, PREV = null, BASE = null, KV = {}, LOG = [], pending = null, timer = null, SH = null;
+const fmt = n => (n < 0 ? '-' : '') + PRE + num(Math.abs(n)) + 'M';
+const pctf = v => (v * 100).toFixed(1) + '%', yrf = v => v.toFixed(1) + ' yr', xf2 = v => v.toFixed(2);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  $('themeBtn').textContent = t === 'light' ? '☀' : '☾';
+  if (window.Chart) { Chart.defaults.color = css('--mute'); Chart.defaults.borderColor = css('--line'); Object.values(charts).forEach(c => c.update('none')); }
+}
+const toggleTheme = () => setTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+function tween(el, from, to, f, dur = 700) {
+  cancelAnimationFrame(el._r);
+  if (REDUCE) { el.textContent = f(to); return; }
+  const t0 = performance.now();
+  (function tick(now) { const p = Math.min((now - t0) / dur, 1), e = 1 - Math.pow(1 - p, 3); el.textContent = f(from + (to - from) * e); if (p < 1) el._r = requestAnimationFrame(tick); })(t0);
+}
+function flash(el, cls) { el.classList.remove('up', 'down'); void el.offsetWidth; el.classList.add(cls); }
+
+// ---------- model ----------
+const rateFor = (m, p) => p.basis === 'constant' ? (1 + m / 100) / (1 + p.inf / 100) - 1 : m / 100;
+const pv = (net, r) => { let v = 0; for (let t = 0; t < net.length; t++) v += net[t] / Math.pow(1 + r, t + 1); return v; };
+function flows(p, capex, pf, vf, xf, d) {
+  const T = p.C + d + p.O, z = () => Array(T).fill(0), cx = z(), rv = z(), ox = z(), tx = z(), net = z();
+  for (let t = 0; t < p.C; t++) cx[t] = capex * p.w[t];
+  const dep = capex / p.O, s0 = p.C + d, sv = capex * p.salv / 100;
+  for (let k = 1; k <= p.O; k++) {
+    const t = s0 + k - 1, ve = p.vol * vf * Math.min(1, k / p.ramp);
+    rv[t] = p.price * pf * Math.pow(1 + p.pe, k - 1) * ve;
+    ox[t] = (p.fix + p.vc * ve) * xf * Math.pow(1 + p.ce, k - 1);
+    tx[t] = Math.max(0, p.tax / 100 * (rv[t] - ox[t] - dep));
+  }
+  for (let t = 0; t < T; t++) net[t] = rv[t] - ox[t] - tx[t] - cx[t] + (t === T - 1 ? sv : 0);
+  return { cx, rv, ox, tx, net, sv, T };
+}
+function irrOf(net) {
+  const f = r => pv(net, r); let lo = -0.9, hi = 5;
+  if (f(lo) < 0) return NaN;
+  if (f(hi) > 0) return hi;
+  for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; if (f(m) > 0) lo = m; else hi = m; }
+  return (lo + hi) / 2;
+}
+// random shocks are drawn once and reused, so a change in an input moves the results smoothly (no simulation noise)
+function shocks(N, K, E, dist) {
+  const key = [N, K, E, dist].join();
+  if (SH && SH.key === key) return SH;
+  const W = K + E + 4, z = new Float32Array(N * W);
+  for (let i = 0; i < z.length; i++) { const j = i % W; z[i] = j > K && j <= K + E ? Math.random() : draw(dist, 1); }
+  return (SH = { key, z, W });
+}
+function compute(p) {
+  const N = p.iter, K = p.wbs.length, E = p.ev.length, { z, W } = shocks(N, K, E, p.dist);
+  const maxD = Math.ceil(p.ev.reduce((a, e) => a + e[3], 0)), Tm = p.C + p.O + maxD;
+  const npv = new Float64Array(N), capexA = new Float64Array(N), cum = new Float64Array(N * Tm), delayA = new Float64Array(N);
+  const X = { items: p.wbs.map(() => new Float64Array(N)), pf: new Float64Array(N), vf: new Float64Array(N), xf: new Float64Array(N) };
+  const evSum = new Float64Array(E), evCnt = new Float64Array(E), irr = [], sc = Math.sqrt(p.cc), sr = Math.sqrt(1 - p.cc);
+  let sum = 0;
+  for (let i = 0; i < N; i++) {
+    const o = i * W, hit = []; let capex = 0, delay = 0;
+    for (let k = 0; k < K; k++) { const w = p.wbs[k], v = w[1] * Math.max(0, 1 + (sc * z[o] + sr * z[o + 1 + k]) * w[2] / 100); X.items[k][i] = v; capex += v; }
+    for (let k = 0; k < E; k++) { const e = p.ev[k]; if (z[o + 1 + K + k] < e[1] / 100) { capex += e[2]; delay += e[3]; hit.push(k); } }
+    delay = Math.round(delay);
+    const b = o + 1 + K + E, pf = Math.max(0, 1 + z[b] * p.pr / 100), vf = Math.max(0, 1 + z[b + 1] * p.vr / 100), xf = Math.max(0, 1 + z[b + 2] * p.xr / 100);
+    const f = flows(p, capex, pf, vf, xf, delay), v = pv(f.net, p.r);
+    npv[i] = v; capexA[i] = capex; delayA[i] = delay; X.pf[i] = pf; X.vf[i] = vf; X.xf[i] = xf; sum += v;
+    hit.forEach(k => { evSum[k] += v; evCnt[k]++; });
+    let c = 0; for (let t = 0; t < Tm; t++) { if (t < f.T) c += f.net[t]; cum[i * Tm + t] = c; }
+    if (i < 1500) irr.push(irrOf(f.net));
+  }
+  const s = Float64Array.from(npv).sort(), st = stats(s), cs = Float64Array.from(capexA).sort();
+  const capex0 = p.wbs.reduce((a, r) => a + r[1], 0), f0 = flows(p, capex0, 1, 1, 1, 0), base = pv(f0.net, p.r);
+  let pos = 0; for (const v of s) if (v > 0) pos++;
+  const kw = Math.max(1, Math.floor(0.05 * N)); let c5 = 0; for (let j = 0; j < kw; j++) c5 += s[j];
+  const irrs = irr.filter(Number.isFinite).sort((a, b) => a - b);
+  const pvRv = pv(f0.rv, p.r), pvCx = pv(f0.cx, p.r), pvOx = pv(f0.ox, p.r), pvTx = pv(f0.tx, p.r), pvSv = f0.sv / Math.pow(1 + p.r, f0.T);
+  let cp = 0, dpb = NaN;
+  for (let t = 0; t < f0.T && !Number.isFinite(dpb); t++) { const v = f0.net[t] / Math.pow(1 + p.r, t + 1); if (cp < 0 && cp + v >= 0) dpb = t + (-cp) / v; cp += v; }
+  const col = new Float64Array(N), P10 = [], P50 = [], P90 = [];
+  for (let t = 0; t < Tm; t++) { for (let i = 0; i < N; i++) col[i] = cum[i * Tm + t]; col.sort(); P10.push(pct(col, .1)); P50.push(pct(col, .5)); P90.push(pct(col, .9)); }
+  const names = [...p.wbs.map(r => r[0]), 'Selling price', 'Volume', 'O&M cost', 'Delay (years)'], arrs = [...X.items, X.pf, X.vf, X.xf, delayA];
+  const drv = names.map((nm, i) => [nm, corr(arrs[i], npv)]);
+  const imp = p.ev.map((e, k) => { const c = evCnt[k], w = c ? evSum[k] / c : 0, wo = N - c ? (sum - evSum[k]) / (N - c) : 0; return [e[0], c && N - c ? w - wo : 0, c / N]; });
+  const cx0 = capex0 || 1;
+  const k = { npv0: base, mean: st.mean, std: st.std, pp: pos / N, p10: pct(s, .1), p50: st.median, p90: pct(s, .9), cvar: c5 / kw, irr: irrOf(f0.net),
+    irrp10: irrs.length ? pct(irrs, .1) : NaN, bc: (pvRv + pvSv) / Math.max(1e-9, pvCx + pvOx + pvTx), pb: dpb, cx0: capex0, cx50: pct(cs, .5), cx80: pct(cs, .8), cont: (pct(cs, .8) - capex0) / cx0 * 100 };
+  return { k, s, f0, base, N, Tm, P10, P50, P90, drv, imp, wf: [pvCx, pvRv, pvOx, pvTx, pvSv], hist: histogram(s, 30) };
+}
+
+// ---------- inputs ----------
+const DATA = {
+  wbs: [['Civil and structural works', 900, 20], ['Equipment and systems', 600, 15], ['Land and resettlement', 250, 25], ['Engineering and project management', 150, 10], ['Environmental and mitigation', 100, 30]],
+  evt: [['Adverse ground conditions', 30, 150, 1], ['Flood during construction', 15, 80, 1], ['Land acquisition dispute', 25, 40, 1], ['Permit and regulatory delay', 20, 0, 2]]
+};
+const COLS = { wbs: ['Package', 'Base ($M)', 'σ %'], evt: ['Event', 'Prob %', 'Cost ($M)', 'Delay yr'] }, NEWROW = { wbs: ['New package', 100, 15], evt: ['New risk', 10, 50, 1] };
+const fld = (id, l, v) => `<label class="f"><span>${l}</span><input type="number" step="any" id="${id}" value="${v}" data-l="${l}" data-v="${v}"></label>`;
+const sel = (id, l, o) => `<label class="f"><span>${l}</span><select id="${id}" data-l="${l}">${o.map(x => `<option value="${x[0]}">${x[1]}</option>`).join('')}</select></label>`;
+const sec = (t, b, open = true) => `<details ${open ? 'open' : ''}><summary>${t}</summary>${b}</details>`;
+function tableHTML(t) {
+  return `<div class="scroll"><table class="edit"><tr>${COLS[t].map(c => `<th>${c}</th>`).join('')}<th></th></tr>${DATA[t].map((r, i) => `<tr>${r.map((v, j) => `<td><input ${j ? 'type="number"' : 'type="text"'} step="any" value="${v}" data-t="${t}" data-i="${i}" data-j="${j}" data-v="${v}"></td>`).join('')}<td><button class="x" title="Remove" data-act="del" data-t="${t}" data-i="${i}">×</button></td></tr>`).join('')}</table></div><button class="add" data-act="add" data-t="${t}">+ Add row</button>`;
+}
+function buildSide() {
+  $('side').innerHTML =
+    sec('Timeline', fld('C', 'Construction (years)', 4) + fld('O', 'Operation (years)', 25) + fld('ramp', 'Revenue ramp-up (years)', 3)) +
+    sec('Prices and operations', fld('price', 'Selling price (per unit)', 52) + fld('vol', 'Peak volume (million units/yr)', 10) + fld('vc', 'Variable cost (per unit)', 6) + fld('fix', 'Fixed O&M ($M/yr)', 80) + fld('pesc', 'Price escalation (%/yr)', 1) + fld('cesc', 'Cost escalation (%/yr)', 1)) +
+    sec('Capital cost packages', `<div id="tWbs">${tableHTML('wbs')}</div>`) +
+    sec('Risk register', `<div id="tEvt">${tableHTML('evt')}</div>`) +
+    sec('Finance and tax', fld('marr', 'MARR (%/yr)', 10) + fld('inf', 'Inflation (%/yr)', 3) + fld('tax', 'Tax rate (%)', 25) + fld('salv', 'Salvage (% of capex)', 5) + sel('basis', 'Cash flow basis', [['constant', "Today's $"], ['actual', 'Actual $']]), false) +
+    sec('Uncertainty', fld('pr', 'Price risk σ (%)', 12) + fld('vr', 'Volume risk σ (%)', 10) + fld('xr', 'O&M cost risk σ (%)', 10) + fld('cc', 'Capex correlation (0 to 1)', 0.5), false) +
+    sec('Simulation', sel('iter', 'Scenarios', [[2000, '2,000'], [5000, '5,000'], [10000, '10,000']]) + sel('dist', 'Distribution', [['normal', 'Normal'], ['tri', 'Triangular']]) + sel('cur', 'Currency', [['$', 'USD'], ['PKR ', 'PKR'], ['€', 'EUR']]) + '<button class="add" id="reroll">↻ Re-roll scenarios</button>', false);
+  $('iter').value = 2000;
+}
+function collect() {
+  const v = id => +$(id).value || 0, c = (x, a, b) => Math.min(b, Math.max(a, x));
+  const p = { C: c(Math.round(v('C')), 1, 15), O: c(Math.round(v('O')), 1, 60), ramp: Math.max(1, v('ramp')), price: v('price'), vol: v('vol'), vc: v('vc'), fix: v('fix'), pe: v('pesc') / 100, ce: v('cesc') / 100,
+    marr: v('marr'), inf: v('inf'), tax: c(v('tax'), 0, 100), salv: v('salv'), pr: v('pr'), vr: v('vr'), xr: v('xr'), cc: c(v('cc'), 0, 1), basis: $('basis').value, dist: $('dist').value, iter: +$('iter').value,
+    wbs: DATA.wbs.map(r => [r[0], Math.max(0, +r[1] || 0), Math.max(0, +r[2] || 0)]), ev: DATA.evt.map(r => [r[0], c(+r[1] || 0, 0, 100), Math.max(0, +r[2] || 0), Math.max(0, +r[3] || 0)]) };
+  PRE = $('cur').value;
+  p.r = rateFor(p.marr, p);
+  const w = Array.from({ length: p.C }, (_, t) => Math.sin(Math.PI * (t + .5) / p.C)), ws = w.reduce((a, b) => a + b, 0);
+  p.w = w.map(x => x / ws);
+  return p;
+}
+
+// ---------- rendering ----------
+const KPI = [['npv0', 'Deterministic NPV', 1, fmt], ['mean', 'Expected NPV', 1, fmt], ['std', 'Std deviation', 0, fmt], ['pp', 'Probability NPV > 0', 1, pctf],
+  ['p10', 'NPV P10 (pessimistic)', 1, fmt], ['p50', 'NPV P50 (median)', 1, fmt], ['p90', 'NPV P90 (optimistic)', 1, fmt], ['cvar', 'CVaR 5% (worst 5% mean)', 1, fmt],
+  ['irr', 'Deterministic IRR', 1, pctf], ['irrp10', 'Simulated IRR P10', 1, pctf], ['bc', 'Benefit/cost ratio', 1, xf2], ['pb', 'Discounted payback', 0, yrf],
+  ['cx0', 'Base capex', 0, fmt], ['cx50', 'Capex P50', 0, fmt], ['cx80', 'Capex P80', 0, fmt], ['cont', 'Suggested contingency', 0, v => v.toFixed(1) + '%']];
+function barRows(id, rows) {
+  const el = $(id), sig = rows.map(r => r[0]).join('|'), mx = Math.max(...rows.map(r => Math.abs(r[1])), 1e-9);
+  if (el.dataset.sig !== sig) { el.dataset.sig = sig; el.innerHTML = rows.map(r => `<div class="tb"><span class="tl"></span><div class="tt"><i class="neg"></i><i class="pos"></i><u></u></div><span class="tv"></span></div>`).join(''); }
+  const rank = rows.map((r, i) => i).sort((a, b) => Math.abs(rows[b][1]) - Math.abs(rows[a][1]));
+  rows.forEach((r, i) => { const d = el.children[i]; d.style.order = rank.indexOf(i); d.querySelector('.tl').textContent = r[0]; d.querySelector('.neg').style.width = (r[1] < 0 ? -r[1] / mx * 50 : 0) + '%'; d.querySelector('.pos').style.width = (r[1] > 0 ? r[1] / mx * 50 : 0) + '%'; d.querySelector('.tv').textContent = r[2]; });
+}
+const co = (id, type, extra) => charts[id] = new Chart($(id), Object.assign({ type, data: { labels: [], datasets: [] }, options: Object.assign({ responsive: true, maintainAspectRatio: false, animation: { duration: REDUCE ? 0 : 650 }, plugins: { legend: { display: false } } }, extra || {}) }));
+function initCharts() {
+  Chart.defaults.font.family = "'Times New Roman', Times, serif"; Chart.defaults.font.size = 12;
+  co('wfChart', 'bar'); co('histChart', 'bar', { scales: { x: { ticks: { maxRotation: 45 } } } }); co('fanChart', 'line', { plugins: { legend: { display: true } } }); co('cfChart', 'bar', { plugins: { legend: { display: true } } });
+}
+function render(r, p, ms) {
+  const up = css('--up'), dn = css('--down'), k = r.k;
+  // KPIs with animated numbers, flashes and change versus baseline
+  KPI.forEach(([id, , hi, f]) => {
+    const el = $('k_' + id), v = k[id], pv0 = KV[id], vEl = el.querySelector('.kv'), dEl = el.querySelector('.kd');
+    if (Number.isFinite(v)) { tween(vEl, Number.isFinite(pv0) ? pv0 : 0, v, f); if (Number.isFinite(pv0) && Math.abs(v - pv0) > 1e-9) flash(el, (v > pv0) === !!hi ? 'up' : 'down'); } else vEl.textContent = 'n/a';
+    const b = BASE && BASE[id], d = Number.isFinite(v) && Number.isFinite(b) ? v - b : 0;
+    dEl.textContent = Math.abs(d) < 1e-9 ? 'at baseline' : (d > 0 ? '▲ ' : '▼ ') + f(Math.abs(d)) + ' vs baseline';
+    dEl.className = 'kd ' + (Math.abs(d) < 1e-9 ? '' : (d > 0) === !!hi ? 'g' : 'r'); KV[id] = v;
+  });
+  const pp = k.pp, ok = pp > .8 && k.mean > 0, mid = pp > .5 && k.mean > 0;
+  $('ringArc').style.strokeDashoffset = 326.7 * (1 - pp); $('ring').className = 'ring ' + (ok ? 'g' : mid ? 'y' : 'r');
+  $('ringTxt').textContent = pctf(pp);
+  $('verdict').textContent = ok ? 'ACCEPT: high confidence' : mid ? 'CONDITIONAL: moderate risk' : 'REJECT: high risk';
+  $('vsub').textContent = `Expected NPV ${fmt(k.mean)}. Hold ${k.cont.toFixed(1)}% capex contingency (P80). Decision flips below MARR ${bk(r)}.`;
+  $('stat').textContent = `LIVE · ${num(r.N)} scenarios · ${ms.toFixed(0)} ms`;
+  // charts
+  const [cx, rv, ox, tx, sv] = r.wf; let run = 0;
+  const steps = [['Capex', -cx], ['Revenue', rv], ['O&M', -ox], ['Tax', -tx], ['Salvage', sv]].map(([n, d]) => { const a = run; run += d; return [n, [a, run], d]; });
+  steps.push(['NPV', [0, run], run]);
+  Object.assign(charts.wfChart.data, { labels: steps.map(x => x[0]), datasets: [{ data: steps.map(x => x[1]), backgroundColor: steps.map(x => x[2] < 0 ? dn : up), borderRadius: 3 }] });
+  charts.wfChart.options.plugins.title = { display: true, text: 'Where the NPV comes from (present values)' };
+  charts.wfChart.update();
+  const { h, centers } = r.hist;
+  Object.assign(charts.histChart.data, { labels: centers.map(fmt), datasets: [{ data: h, backgroundColor: centers.map(c => c < 0 ? dn : up), borderWidth: 0 }] });
+  charts.histChart.options.plugins.title = { display: true, text: 'NPV across all scenarios' }; charts.histChart.update();
+  const yl = r.P50.map((_, t) => 'Y' + (t + 1));
+  Object.assign(charts.fanChart.data, { labels: yl, datasets: [{ label: 'P10', data: r.P10, borderColor: dn, pointRadius: 0, tension: .3, borderWidth: 1.5 }, { label: 'P90', data: r.P90, borderColor: up, backgroundColor: 'rgba(76,201,240,.14)', fill: '-1', pointRadius: 0, tension: .3, borderWidth: 1.5 }, { label: 'P50', data: r.P50, borderColor: css('--gold'), borderWidth: 3, pointRadius: 0, tension: .3 }] });
+  charts.fanChart.options.plugins.title = { display: true, text: 'Cumulative cash flow: P10 / P50 / P90' }; charts.fanChart.update();
+  let cc = 0; const cl = r.f0.net.map(v => (cc += v));
+  Object.assign(charts.cfChart.data, { labels: r.f0.net.map((_, t) => 'Y' + (t + 1)), datasets: [{ type: 'bar', label: 'Net', data: r.f0.net, backgroundColor: r.f0.net.map(v => v < 0 ? dn : up) }, { type: 'line', label: 'Cumulative', data: cl, borderColor: css('--gold'), pointRadius: 0, tension: .3 }] });
+  charts.cfChart.options.plugins.title = { display: true, text: 'Deterministic net cash flow' }; charts.cfChart.update();
+  barRows('drv', r.drv.map(([n, v]) => [n, v, 'r = ' + v.toFixed(2)]));
+  barRows('imp', r.imp.map(([n, v, pr]) => [n, v, `${fmt(v)} (${(pr * 100).toFixed(0)}% occur)`]));
+  // header line = P50 cumulative cash flow
+  const lo = Math.min(...r.P50), hi = Math.max(...r.P50), n = r.P50.length;
+  $('spark').setAttribute('d', r.P50.map((v, i) => (i ? 'L' : 'M') + (i / (n - 1) * 600).toFixed(1) + ',' + (54 - (v - lo) / ((hi - lo) || 1) * 48).toFixed(1)).join(' '));
+  // ticker tape
+  const tape = [['E[NPV]', fmt(k.mean), 'mean'], ['P(NPV>0)', pctf(k.pp), 'pp'], ['IRR', Number.isFinite(k.irr) ? pctf(k.irr) : 'n/a', 'irr'], ['CVaR 5%', fmt(k.cvar), 'cvar'], ['CAPEX P80', fmt(k.cx80), 'cx80'], ['B/C', xf2(k.bc), 'bc'], ['CONTINGENCY', k.cont.toFixed(1) + '%', 'cont']]
+    .map(([l, v, id]) => { const b = BASE ? BASE[id] : k[id], d = k[id] - b, hiB = KPI.find(x => x[0] === id)[2], good = (d > 0) === !!hiB; return `<span class="ti"><em>${l}</em> ${v} <b class="${Math.abs(d) < 1e-9 ? '' : good ? 'g' : 'r'}">${Math.abs(d) < 1e-9 ? '•' : d > 0 ? '▲' : '▼'}</b></span>`; }).join('');
+  $('track').innerHTML = tape + tape;
+}
+function bk(r) { // break-even MARR where deterministic NPV crosses zero (bisection)
+  const p = collect(); let a = -50, b = 200;
+  const f = m => pv(r.f0.net, rateFor(m, p));
+  if (f(a) < 0 || f(b) > 0) return 'n/a';
+  for (let i = 0; i < 40; i++) { const m = (a + b) / 2; f(m) > 0 ? a = m : b = m; }
+  return ((a + b) / 2).toFixed(1) + '%';
+}
+function renderLog() {
+  $('log').innerHTML = LOG.length ? LOG.map(e => `<div class="lg"><b>${e.label}</b><span>${e.from} → ${e.to}</span><span class="${e.dn >= 0 ? 'g' : 'r'}">E[NPV] ${e.dn >= 0 ? '▲ +' : '▼ -'}${fmt(Math.abs(e.dn)).replace('-', '')}</span><span class="${e.dp >= 0 ? 'g' : 'r'}">P(NPV>0) ${e.dp >= 0 ? '+' : '-'}${Math.abs(e.dp * 100).toFixed(1)} pt</span></div>`).join('') : '<p class="mute">Change any number on the left. Every effect lands here.</p>';
+}
+
+// ---------- reactive loop ----------
+function schedule(label, from, to, el) {
+  if (label) pending = pending && pending.label === label ? Object.assign(pending, { to, el }) : { label, from, to, el };
+  clearTimeout(timer); timer = setTimeout(run, 80);
+}
+function run() {
+  const t0 = performance.now(), p = collect(), r = compute(p);
+  if (!BASE) BASE = Object.assign({}, r.k);
+  if (PREV && pending && pending.from !== pending.to) { LOG.unshift({ label: pending.label, from: pending.from, to: pending.to, dn: r.k.mean - PREV.k.mean, dp: r.k.pp - PREV.k.pp }); LOG = LOG.slice(0, 6); }
+  if (pending && pending.el) pending.el.dataset.v = pending.el.value;
+  pending = null; PREV = r; last = { p, r };
+  render(r, p, performance.now() - t0); renderLog();
+}
+let last = null;
+function exportCSV() {
+  const { p, r } = last, q = v => '"' + String(v).replace(/"/g, '""') + '"';
+  const rows = [['Mega Project Risk Analyzer'], ['Metric', 'Value'], ...KPI.map(([id, l]) => [l, Number.isFinite(r.k[id]) ? r.k[id].toFixed(4) : 'n/a']), [], ['Year', 'Capex', 'Revenue', 'O&M', 'Tax', 'Net'],
+    ...r.f0.net.map((v, t) => [t + 1, r.f0.cx[t].toFixed(2), r.f0.rv[t].toFixed(2), r.f0.ox[t].toFixed(2), r.f0.tx[t].toFixed(2), v.toFixed(2)])];
+  const data = rows.map(a => a.map(q).join(',')).join('\n'), msg = $('exportMsg');
+  (async () => {
+    try { const d = await claude.use('downloads'); if (d) { await d.save({ filename: 'Project_Risk_Analysis.csv', data }); msg.textContent = 'Saved.'; return; } } catch (e) { if (e && e.code === 'declined') { msg.textContent = 'Cancelled.'; return; } }
+    try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: 'text/csv' })); a.download = 'Project_Risk_Analysis.csv'; a.click(); URL.revokeObjectURL(a.href); } catch (e) { msg.textContent = 'Download is not available here.'; }
+  })();
+}
+
+// ---------- boot ----------
+buildSide();
+$('kpis').innerHTML = KPI.map(([id, l]) => `<div class="kpi" id="k_${id}"><span class="kl">${l}</span><b class="kv">-</b><span class="kd"></span></div>`).join('');
+$('side').addEventListener('input', e => {
+  const el = e.target; if (!['INPUT', 'SELECT'].includes(el.tagName)) return;
+  let label = null;
+  if (el.dataset.t) { const D = DATA[el.dataset.t], i = +el.dataset.i, j = +el.dataset.j; D[i][j] = j ? +el.value : el.value; if (j) label = `${D[i][0]}: ${COLS[el.dataset.t][j]}`; } else label = el.dataset.l;
+  schedule(label, el.dataset.v === undefined ? '' : el.dataset.v, el.value, el);
+});
+$('side').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'reroll') { SH = null; schedule(null); return; }
+  const t = b.dataset.t, id = t === 'wbs' ? 'tWbs' : 'tEvt';
+  if (b.dataset.act === 'add') DATA[t].push(NEWROW[t].slice());
+  else if (b.dataset.act === 'del' && DATA[t].length > 1) DATA[t].splice(+b.dataset.i, 1); else return;
+  $(id).innerHTML = tableHTML(t); schedule(null);
+});
+$('setBase').onclick = () => { BASE = Object.assign({}, PREV.k); LOG = []; render(PREV, last.p, 0); renderLog(); };
+setTheme('dark');
+initCharts(); setTheme(document.documentElement.getAttribute('data-theme'));
+run();
+
+// ================= added: intro, 3D features, page flow =================
+function Rain(cv, n) {
+  const x = cv.getContext('2d'); let W, H; const D = Math.min(devicePixelRatio || 1, 2), P = [];
+  const fit = () => { W = cv.width = innerWidth * D; H = cv.height = innerHeight * D; };
+  const mk = () => ({ x: Math.random() * W, y: -Math.random() * H, v: (1.5 + Math.random() * 3.5) * D, s: (14 + Math.random() * 26) * D, a: Math.random() * 6, w: (Math.random() - .5) * .04, c: Math.random() < .7 ? '#2ee59d' : '#e9b949' });
+  fit(); for (let i = 0; i < n; i++) { const p = mk(); p.y = Math.random() * H; P.push(p); } addEventListener('resize', fit);
+  return { dims: () => [W, H, D], draw() { x.clearRect(0, 0, W, H); P.forEach(p => { p.y += p.v; p.a += p.w; p.x += Math.sin(p.a) * .6 * D; if (p.y > H + 40) Object.assign(p, mk()); x.save(); x.translate(p.x, p.y); x.rotate(Math.sin(p.a) * .5); x.globalAlpha = .6; x.fillStyle = p.c; x.font = '700 ' + p.s + 'px Times New Roman,serif'; x.fillText('$', 0, 0); x.restore(); }); } };
+}
+function drawChart(x, W, H, D, cs) {
+  const bw = Math.min(W * .9, 1000 * D), bh = H * .38, bx = (W - bw) / 2, by = H * .34, cw = bw / 46;
+  x.save(); x.lineWidth = D; x.strokeStyle = 'rgba(120,160,200,.14)';
+  for (let i = 0; i <= 5; i++) { x.beginPath(); x.moveTo(bx, by + bh * i / 5); x.lineTo(bx + bw, by + bh * i / 5); x.stroke(); }
+  const hi = Math.max(...cs.map(c => c.h)), lo = Math.min(...cs.map(c => c.l)), Y = v => by + bh - (v - lo) / ((hi - lo) || 1) * bh * .92 - bh * .04;
+  cs.forEach((c, i) => { const cx = bx + i * cw + cw / 2, up = c.c >= c.o; x.strokeStyle = x.fillStyle = up ? '#2ee59d' : '#ff5c6c'; x.beginPath(); x.moveTo(cx, Y(c.h)); x.lineTo(cx, Y(c.l)); x.stroke(); x.fillRect(cx - cw * .3, Math.min(Y(c.o), Y(c.c)), cw * .6, Math.max(2 * D, Math.abs(Y(c.o) - Y(c.c)))); });
+  x.strokeStyle = '#e9b949'; x.lineWidth = 2.2 * D; x.shadowColor = '#e9b949'; x.shadowBlur = 10 * D; x.beginPath();
+  cs.forEach((c, i) => { const cx = bx + i * cw + cw / 2; i ? x.lineTo(cx, Y(c.c)) : x.moveTo(cx, Y(c.c)); }); x.stroke(); x.restore();
+}
+function startIntro() {
+  const cv = $('fx'), x = cv.getContext('2d'), R = Rain(cv, 80), cs = []; let px = 100, n = 0, last = 0, done = false;
+  const push = () => { const o = px, c = o + (Math.random() - .5) * 9 + Math.sin(n++ / 7) * 2.2; px = c; cs.push({ o, c, h: Math.max(o, c) + Math.random() * 4, l: Math.min(o, c) - Math.random() * 4 }); if (cs.length > 46) cs.shift(); };
+  for (let i = 0; i < 24; i++) push();
+  const msgs = ['Connecting to market feed...', 'Pricing capex and revenue...', 'Simulating risk scenarios...', 'Opening dashboard...'];
+  function finish() { if (done) return; done = true; $('intro').classList.add('done'); document.body.className = 'v-landing'; setTimeout(() => $('intro').style.display = 'none', 1200); }
+  $('skip').onclick = finish; if (REDUCE) { finish(); return; }
+  const t0 = performance.now();
+  (function f(now) {
+    if (done) return; const p = Math.min((now - t0) / 5600, 1), [W, H, D] = R.dims();
+    if (now - last > 110) { push(); last = now; const pn = px - 100, el = $('pl'); el.textContent = (pn >= 0 ? 'PROFIT +' : 'LOSS ') + pn.toFixed(1) + '%'; el.className = pn >= 0 ? 'g' : 'r'; }
+    R.draw(); drawChart(x, W, H, D, cs);
+    $('lbf').style.width = p * 100 + '%'; $('lt').textContent = msgs[Math.min(3, Math.floor(p * 4))];
+    p < 1 ? requestAnimationFrame(f) : finish();
+  })(t0);
+}
+const FEAT = [
+  ['MONTE CARLO', 'Thousands of random scenarios price your risk, not just one guess.', ['Up to 10,000 scenarios', 'Normal or triangular shocks', 'Correlated capex packages']],
+  ['LIVE REPRICING', 'Change any cost, price or rate and every number and chart updates at once.', ['Instant KPI updates', 'Change log of every edit', 'Compare against baseline']],
+  ['RISK REGISTER', 'Add events with probability, cost and delay and see their NPV hit.', ['Probability and cost per event', 'Delay in years', 'Expected NPV impact, ranked']],
+  ['P10 / P50 / P90', 'Pessimistic, median and optimistic outcomes, plus CVaR for the worst 5%.', ['NPV percentile fan chart', 'Probability NPV above zero', 'CVaR 5% tail loss']],
+  ['IRR AND PAYBACK', 'Deterministic and simulated IRR, benefit/cost ratio and discounted payback.', ['Break-even MARR', 'Benefit/cost ratio', 'Capex P80 contingency']],
+  ['REPORT EXPORT', 'Download a CSV or print a clean report for your board.', ['One-click CSV download', 'Print-ready layout', 'USD, PKR and EUR']]];
+function build3d() {
+  const edge = Array.from({ length: 7 }, (_, k) => `<div class="edge" style="transform:translateZ(${(k - 3) * 2}px)"></div>`).join('');
+  $('fg').innerHTML = FEAT.map(([t, d, b], i) => {
+    const pts = Array.from({ length: 12 }, (_, k) => `${k * 10},${(32 - k * 1.8 + Math.random() * 9).toFixed(1)}`).join(' ');
+    return `<div class="fc"><div class="sc" data-i="${i}"><div class="obj">${edge}<div class="face front"><small>0${i + 1} / 06</small><h3>${t}</h3><i class="rule"></i><p>${d}</p><span class="tip">Drag to rotate</span><svg class="spark" viewBox="0 0 110 40"><polyline points="${pts}" fill="none" stroke="#2ee59d" stroke-width="2"/></svg></div><div class="face back"><small>${t}</small><ul>${b.map(x => `<li>${x}</li>`).join('')}</ul></div></div></div></div>`;
+  }).join('');
+  const S = FEAT.map((_, i) => ({ rx: -6, ry: i * 25, drag: false, hov: false, x: 0, y: 0 }));
+  document.querySelectorAll('.sc').forEach(el => {
+    const s = S[+el.dataset.i];
+    el.onpointerdown = e => { s.drag = true; s.x = e.clientX; s.y = e.clientY; el.setPointerCapture(e.pointerId); };
+    el.onpointermove = e => { if (!s.drag) return; s.ry += (e.clientX - s.x) * .6; s.rx -= (e.clientY - s.y) * .6; s.x = e.clientX; s.y = e.clientY; };
+    el.onpointerup = el.onpointercancel = () => { s.drag = false; s.rx = ((s.rx + 180) % 360 + 360) % 360 - 180; };
+    el.onpointerenter = () => s.hov = true; el.onpointerleave = () => s.hov = false;
+  });
+  const objs = document.querySelectorAll('.obj');
+  (function spin() {
+    if (document.body.classList.contains('v-landing')) objs.forEach((o, i) => { const s = S[i]; if (!s.drag) { if (!REDUCE && !s.hov) s.ry += .35; s.rx += (-6 - s.rx) * .04; } o.style.transform = `rotateX(${s.rx}deg) rotateY(${s.ry}deg)`; });
+    requestAnimationFrame(spin);
+  })();
+}
+function go(v) {
+  document.body.className = 'v-' + v; scrollTo(0, 0);
+  if (v === 'input') { document.querySelectorAll('#side details').forEach(d => d.open = true); addHints(); inSummary(); }
+  if (v === 'results') {
+    $('calcT').textContent = 'Running ' + num(+$('iter').value) + ' scenarios...'; $('calc').classList.add('on');
+    setTimeout(() => {
+      pending = null; LOG = []; BASE = null; KV = {}; clearTimeout(timer); run();
+      Object.values(charts).forEach(c => { c.resize(); c.reset(); c.update(); }); $('calc').classList.remove('on');
+    }, REDUCE ? 50 : 1300);
+  }
+}
+(function market() {
+  if (REDUCE) return;
+  const cv = $('bgrain'), x = cv.getContext('2d'), D = Math.min(devicePixelRatio || 1, 2), SP = 14 * D, CW = 20 * D; let W, H;
+  const fit = () => { W = cv.width = innerWidth * D; H = cv.height = innerHeight * D; }; fit(); addEventListener('resize', fit);
+  const L = [.2, .45, .7].map((b, i) => ({ b, off: 0, sp: (.5 + i * .35) * D, pts: [] }));
+  const C = { off: 0, c: [], px: 0 }, $$ = Array.from({ length: 24 }, () => ({ x: Math.random(), y: Math.random(), v: .5 + Math.random() * 1.3, s: 16 + Math.random() * 24, a: Math.random() * 6, c: Math.random() < .7 ? '#2ee59d' : '#e9b949' }));
+  const walk = (arr, k) => { const q = arr.length ? arr[arr.length - 1] : 0; arr.push(q + (Math.random() - .5) * k - q * .02); };
+  (function f() {
+    requestAnimationFrame(f); if (document.body.classList.contains('v-intro')) return;
+    x.clearRect(0, 0, W, H);
+    L.forEach(l => {
+      l.off += l.sp; if (l.off >= SP) { l.off -= SP; l.pts.shift(); } while (l.pts.length < W / SP + 3) walk(l.pts, .035);
+      [['#2ee59d', 1], ['#ff5c6c', 0]].forEach(([c, up]) => {
+        x.strokeStyle = x.shadowColor = c; x.lineWidth = 2.2 * D; x.shadowBlur = 12 * D; x.beginPath();
+        for (let i = 1; i < l.pts.length; i++) if ((l.pts[i] < l.pts[i - 1]) === !!up) { x.moveTo((i - 1) * SP - l.off, l.b * H + l.pts[i - 1] * H); x.lineTo(i * SP - l.off, l.b * H + l.pts[i] * H); }
+        x.stroke();
+      });
+    });
+    x.shadowBlur = 0; C.off += 1.1 * D; if (C.off >= CW) { C.off -= CW; C.c.shift(); }
+    while (C.c.length < W / CW + 3) { const o = C.px, c = o + (Math.random() - .5) * .05 - o * .03; C.px = c; C.c.push({ o, c, h: Math.max(o, c) + Math.random() * .02, l: Math.min(o, c) - Math.random() * .02 }); }
+    C.c.forEach((k, i) => { const cx = i * CW - C.off + CW / 2, Y = v => H * .93 + v * H * .6; x.strokeStyle = x.fillStyle = k.c < k.o ? '#2ee59d' : '#ff5c6c'; x.beginPath(); x.moveTo(cx, Y(k.h)); x.lineTo(cx, Y(k.l)); x.stroke(); x.fillRect(cx - CW * .3, Math.min(Y(k.o), Y(k.c)), CW * .6, Math.max(2 * D, Math.abs(Y(k.o) - Y(k.c)))); });
+    $$.forEach(p => { p.y += p.v / 900; p.a += .02; if (p.y > 1.05) { p.y = -.05; p.x = Math.random(); } x.save(); x.translate(p.x * W + Math.sin(p.a) * 14 * D, p.y * H); x.rotate(Math.sin(p.a) * .5); x.globalAlpha = .5; x.fillStyle = p.c; x.font = '700 ' + p.s * D + 'px Times New Roman,serif'; x.fillText('$', 0, 0); x.restore(); });
+  })();
+})();
+
+// ---- data page helpers
+const HINTS = ['How long to build and how long to operate.', 'Selling price, volume and running costs.', 'Capital cost of each work package and its uncertainty.', 'Events that can add cost or delay.', 'Discount rate, inflation, tax and salvage.', 'How much price, volume and cost can swing.', 'Number of scenarios, distribution and currency.'];
+function addHints() { document.querySelectorAll('#side details').forEach((d, i) => { if (!d.querySelector('.hint2') && HINTS[i]) d.querySelector('summary').insertAdjacentHTML('afterend', `<p class="hint2">${HINTS[i]}</p>`); }); }
+function inSummary() {
+  const p = collect(), cap = p.wbs.reduce((a, r) => a + r[1], 0), risk = p.ev.reduce((a, e) => a + e[1] / 100 * e[2], 0);
+  $('sCap').textContent = fmt(cap); $('sRisk').textContent = fmt(risk); $('sLife').textContent = (p.C + p.O) + ' years'; $('sRev').textContent = fmt(p.price * p.vol) + ' / yr';
+}
+['input', 'click'].forEach(ev => $('side').addEventListener(ev, () => setTimeout(inSummary, 0)));
+build3d(); startIntro();
+</script>
+</body>
+</html>
